@@ -6,6 +6,10 @@ def main():
     sys.stdout.write("$ ")
     pass
 
+    # Wait for user input
+    command = input()
+    print(f"{command}: commond not found")
+
 
 if __name__ == "__main__":
     main()
