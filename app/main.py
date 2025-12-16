@@ -1,5 +1,5 @@
 import sys
-
+BUILTINS = {"echo", "exit", "type"}
 def main():
     while True:
         sys.stdout.write("$ ")
@@ -10,15 +10,28 @@ def main():
             continue
 
         command = line.strip()
-        if command == "exit":
-            break # terminate the shell
-
-        if command.startswith("echo"):
-            parts = command.split()
-            # parts[0] == 'echo'
-            args = parts[1:]
-            print(" ".join(args))
+        if not command:
             continue
+        parts = command.split()
+        cmd = parts[0]
+        args = parts[1:]
+
+        # exit builtin
+        if cmd == "exit":
+            return # terminate the shell
+
+        # echo button
+        if cmd == "type":
+            if len(args) == 0:
+                continue # no arguement given ignore
+            target = args[0]
+            if target in BUILTINS:
+                print(f"{target}: is a shell builtin")
+            else:
+                print(f"{target}: not found")
+            continue
+
+        
 
         if command: # else print this below
             print(f"{command}: command not found")
