@@ -13,6 +13,13 @@ def main():
         if command == "exit":
             break # terminate the shell
 
+        if command.startswith("echo"):
+            parts = command.split()
+            # parts[0] == 'echo'
+            args = parts[1:]
+            print(" ".join(args))
+            continue
+
         if command: # else print this below
             print(f"{command}: command not found")
 
