@@ -27,16 +27,13 @@ def main():
         cmd = parts[0]
         args = parts[1:]
 
-        # exit builtin
         if cmd == "exit":
             return
 
-        # echo builtin
         if cmd == "echo":
             print(" ".join(args))
             continue
 
-        # type builtin
         if cmd == "type":
             if not args:
                 continue
@@ -54,10 +51,9 @@ def main():
                 print(f"{target}: not found")
             continue
 
-        # external command execution
         exe_path = find_executable(cmd)
         if exe_path:
-            subprocess.run([exe_path] + args)
+            subprocess.run([cmd] + args, executable=exe_path)
         else:
             print(f"{cmd}: command not found")
 
