@@ -1,29 +1,32 @@
 import sys
-BUILTINS = {"echo", "exit", "type"}
+
+BUILTINS = {"exit", "echo", "type"}
+
 def main():
     while True:
         sys.stdout.write("$ ")
-        sys.stdout.flush() # for exiting the buffer
+        sys.stdout.flush()
 
-        line = sys.stdin.readline() #input from user saved in line
+        line = sys.stdin.readline()
         if not line:
             continue
 
-        command = line.strip()
-        if not command:
+        parts = line.strip().split()
+        if not parts:
             continue
-        parts = command.split()
         cmd = parts[0]
         args = parts[1:]
 
-        # exit builtin
-        if cmd == "exit":
-            return # terminate the shell
+        if cmd == 'exit':
+            return
+        
+        if cmd == 'echo':
+            print(" ".join(args))
+            continue
 
-        # echo button
         if cmd == "type":
-            if len(args) == 0:
-                continue # no arguement given ignore
+            if not args:
+                continue
             target = args[0]
             if target in BUILTINS:
                 print(f"{target} is a shell builtin")
@@ -31,11 +34,12 @@ def main():
                 print(f"{target}: not found")
             continue
 
-        
+        print(f"{cmd}: command not found")
 
-        if command: # else print this below
-            print(f"{command}: command not found")
+
+
 
 if __name__ == "__main__":
     main()
+
 
