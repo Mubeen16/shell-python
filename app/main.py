@@ -2,7 +2,7 @@ import sys
 import os
 import subprocess
 
-BUILTINS = {"exit", "echo", "type"}
+BUILTINS = {"exit", "echo", "type", "pwd"}
 
 def find_executable(cmd):
     for directory in os.environ.get("PATH", "").split(os.pathsep):
@@ -32,6 +32,10 @@ def main():
 
         if cmd == "echo":
             print(" ".join(args))
+            continue
+
+        if cmd == "pwd":
+            print(os.getcwd())
             continue
 
         if cmd == "type":
