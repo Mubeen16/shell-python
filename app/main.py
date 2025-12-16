@@ -26,7 +26,7 @@ def main():
                 continue # no arguement given ignore
             target = args[0]
             if target in BUILTINS:
-                print(f"{target}: is a shell builtin")
+                print(f"{target} is a shell builtin")
             else:
                 print(f"{target}: not found")
             continue
