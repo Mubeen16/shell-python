@@ -44,6 +44,9 @@ def main():
 
             path = args[0]
 
+            if path == '~':
+                path = os.getenv("HOME")
+
             try:
                 os.chdir(path)
             except FileNotFoundError:
