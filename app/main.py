@@ -41,14 +41,19 @@ def main():
         if cmd == "cd":
             if not args:
                 continue
+
             path = args[0]
 
-            if path.startswith("/"):
-                try:
-                    os.chdir(path)
-                except FileNotFoundError:
-                    print(f"cd: {path}: No such file or directory")
+            try:
+                os.chdir(path)
+            except FileNotFoundError:
+                print(f"cd: {path}: No such file or directory")
+            except NotADirectoryError:
+                print(f"cd: {path}: Not a directory")
+            except PermissionError:
+                print(f"cd: {path}: Permission denied")
             continue
+
 
 
         if cmd == "type":
