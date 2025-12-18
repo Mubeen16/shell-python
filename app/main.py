@@ -17,38 +17,66 @@ def parse_command(line):
     in_single_quote = False
     in_double_quote = False
     escape_next = False
+    i = 0
 
-    for ch in line:
-        # 1. If previous char was backslash → literal
+    while i < len(line):
+        ch = line[i]
+
+        # 1. Outside quotes: escaped character
         if escape_next:
             current += ch
             escape_next = False
+            i += 1
             continue
 
-        # 2. Backslash escaping (only outside quotes)
+        # 2. Backslash outside quotes
         if ch == "\\" and not in_single_quote and not in_double_quote:
             escape_next = True
+            i += 1
             continue
 
-        # 3. Single quotes
+        # 3. Backslash inside double quotes
+        if ch == "\\" and in_double_quote:
+            # Peek next character
+            if i + 1 < len(line) and line[i + 1] in ['"', '\\']:
+                current += line[i + 1]
+                i += 2
+                continue
+            else:
+                # Backslash is literal
+                current += "\\"
+                i += 1
+                continue
+
+        # 4. Single quote handling
         if ch == "'" and not in_double_quote:
             in_single_quote = not in_single_quote
+            i += 1
             continue
 
-        # 4. Double quotes
+        # 5. Double quote handling
         if ch == '"' and not in_single_quote:
             in_double_quote = not in_double_quote
+            i += 1
             continue
 
-        # 5. Space splits only outside quotes
+        # 6. Space splitting
         if ch == " " and not in_single_quote and not in_double_quote:
             if current:
                 args.append(current)
                 current = ""
+            i += 1
             continue
 
-        # 6. Normal character
+        # 7. Normal character
         current += ch
+        i += 1
+
+    if current:
+        args.append(current)
+
+    return args
+
 
     # Append last argument
     if current:
