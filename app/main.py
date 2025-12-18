@@ -98,6 +98,9 @@ def main():
             parts = parts[:redirect_idx]
 
 
+        cmd = parts[0]
+        args = parts[1:]
+
         # ----------------------------
         # Builtins
         # ----------------------------
