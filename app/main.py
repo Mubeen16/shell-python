@@ -15,21 +15,33 @@ def parse_command(line):
     args = []
     current = ""
     in_single_quote = False
+    in_double_quote = False
 
     for ch in line:
-        if ch == "'":
+        # Toggle single quotes (only if not inside double quotes)
+        if ch == "'" and not in_double_quote:
             in_single_quote = not in_single_quote
-        elif ch == " " and not in_single_quote:
+
+        # Toggle double quotes (only if not inside single quotes)
+        elif ch == '"' and not in_single_quote:
+            in_double_quote = not in_double_quote
+
+        # Split on space only if not inside any quotes
+        elif ch == " " and not in_single_quote and not in_double_quote:
             if current:
                 args.append(current)
                 current = ""
+
+        # All other characters are literal
         else:
             current += ch
 
+    # Append last argument if present
     if current:
         args.append(current)
 
     return args
+
 
 
 def main():
