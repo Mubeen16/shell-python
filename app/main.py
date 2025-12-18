@@ -16,32 +16,45 @@ def parse_command(line):
     current = ""
     in_single_quote = False
     in_double_quote = False
+    escape_next = False
 
     for ch in line:
-        # Toggle single quotes (only if not inside double quotes)
+        # 1. If previous char was backslash → literal
+        if escape_next:
+            current += ch
+            escape_next = False
+            continue
+
+        # 2. Backslash escaping (only outside quotes)
+        if ch == "\\" and not in_single_quote and not in_double_quote:
+            escape_next = True
+            continue
+
+        # 3. Single quotes
         if ch == "'" and not in_double_quote:
             in_single_quote = not in_single_quote
+            continue
 
-        # Toggle double quotes (only if not inside single quotes)
-        elif ch == '"' and not in_single_quote:
+        # 4. Double quotes
+        if ch == '"' and not in_single_quote:
             in_double_quote = not in_double_quote
+            continue
 
-        # Split on space only if not inside any quotes
-        elif ch == " " and not in_single_quote and not in_double_quote:
+        # 5. Space splits only outside quotes
+        if ch == " " and not in_single_quote and not in_double_quote:
             if current:
                 args.append(current)
                 current = ""
+            continue
 
-        # All other characters are literal
-        else:
-            current += ch
+        # 6. Normal character
+        current += ch
 
-    # Append last argument if present
+    # Append last argument
     if current:
         args.append(current)
 
     return args
-
 
 
 def main():
