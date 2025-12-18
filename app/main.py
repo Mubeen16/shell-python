@@ -83,16 +83,20 @@ def main():
             continue
 
         # ----------------------------
-        # Handle stdout redirection >
+        # Handle stdout redirection (>, 1>)
         # ----------------------------
         redirect_file = None
-        if ">" in parts:
-            idx = parts.index(">")
-            redirect_file = parts[idx + 1]
-            parts = parts[:idx]
+        redirect_idx = None
 
-        cmd = parts[0]
-        args = parts[1:]
+        for i, token in enumerate(parts):
+            if token == ">" or token == "1>":
+                redirect_idx = i
+                redirect_file = parts[i + 1]
+                break
+
+        if redirect_idx is not None:
+            parts = parts[:redirect_idx]
+
 
         # ----------------------------
         # Builtins
