@@ -11,6 +11,27 @@ def find_executable(cmd):
             return full_path
     return None
 
+def parse_command(line):
+    args = []
+    current = ""
+    in_single_quote = False
+
+    for ch in line:
+        if ch == "'":
+            in_single_quote = not in_single_quote
+        elif ch == " " and not in_single_quote:
+            if current:
+                args.append(current)
+                current = ""
+        else:
+            current += ch
+
+    if current:
+        args.append(current)
+
+    return args
+
+
 def main():
     while True:
         sys.stdout.write("$ ")
@@ -20,7 +41,7 @@ def main():
         if not line:
             continue
 
-        parts = line.strip().split()
+        parts = parse_command(line.rstrip("\n"))
         if not parts:
             continue
 
