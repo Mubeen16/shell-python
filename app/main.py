@@ -85,6 +85,7 @@ def main():
         stdout_file = None
         stderr_file = None
         stdout_append = False
+        stderr_append = False
         cut_idx = None
 
         for i, token in enumerate(parts):
@@ -100,6 +101,12 @@ def main():
                 break
             if token == "2>":
                 stderr_file = parts[i + 1]
+                stderr_append = False
+                cut_idx = i
+                break
+            if token == "2>>":
+                stderr_file = parts[i + 1]
+                stderr_append = True
                 cut_idx = i
                 break
 
@@ -123,7 +130,9 @@ def main():
 
             if stderr_file:
                 saved_stderr = os.dup(2)
-                fd = os.open(stderr_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+                flags = os.O_WRONLY | os.O_CREAT
+                flags |= os.O_APPEND if stderr_append else os.O_TRUNC
+                fd = os.open(stderr_file, flags, 0o644)
                 os.dup2(fd, 2)
                 os.close(fd)
 
