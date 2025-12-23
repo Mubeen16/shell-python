@@ -83,13 +83,13 @@ def main():
             continue
 
         # ----------------------------
-        # Handle stdout redirection (>, 1>)
+        # Detect stdout redirection
         # ----------------------------
         redirect_file = None
         redirect_idx = None
 
         for i, token in enumerate(parts):
-            if token == ">" or token == "1>":
+            if token in (">", "1>"):
                 redirect_idx = i
                 redirect_file = parts[i + 1]
                 break
@@ -97,66 +97,13 @@ def main():
         if redirect_idx is not None:
             parts = parts[:redirect_idx]
 
-
         cmd = parts[0]
         args = parts[1:]
 
         # ----------------------------
-        # Builtins
+        # Setup stdout redirection (BEFORE execution)
         # ----------------------------
-        if cmd == "exit":
-            return
-
-        if cmd == "echo":
-            print(" ".join(args))
-            continue
-
-        if cmd == "pwd":
-            print(os.getcwd())
-            continue
-
-        if cmd == "cd":
-            if not args:
-                continue
-
-            path = args[0]
-            if path == "~":
-                path = os.getenv("HOME")
-
-            try:
-                os.chdir(path)
-            except FileNotFoundError:
-                print(f"cd: {path}: No such file or directory")
-            except NotADirectoryError:
-                print(f"cd: {path}: Not a directory")
-            except PermissionError:
-                print(f"cd: {path}: Permission denied")
-            continue
-
-        if cmd == "type":
-            if not args:
-                continue
-
-            target = args[0]
-            if target in BUILTINS:
-                print(f"{target} is a shell builtin")
-                continue
-
-            exe_path = find_executable(target)
-            if exe_path:
-                print(f"{target} is {exe_path}")
-            else:
-                print(f"{target}: not found")
-            continue
-
-        # ----------------------------
-        # External commands
-        # ----------------------------
-        exe_path = find_executable(cmd)
-        if not exe_path:
-            print(f"{cmd}: command not found")
-            continue
-
+        saved_stdout = None
         if redirect_file:
             saved_stdout = os.dup(1)
             fd = os.open(
@@ -167,13 +114,69 @@ def main():
             os.dup2(fd, 1)
             os.close(fd)
 
-            try:
-                subprocess.run([cmd] + args, executable=exe_path)
-            finally:
+        try:
+            # ----------------------------
+            # Builtins
+            # ----------------------------
+            if cmd == "exit":
+                return
+
+            if cmd == "echo":
+                print(" ".join(args))
+                continue
+
+            if cmd == "pwd":
+                print(os.getcwd())
+                continue
+
+            if cmd == "cd":
+                if not args:
+                    continue
+
+                path = args[0]
+                if path == "~":
+                    path = os.getenv("HOME")
+
+                try:
+                    os.chdir(path)
+                except FileNotFoundError:
+                    print(f"cd: {path}: No such file or directory")
+                except NotADirectoryError:
+                    print(f"cd: {path}: Not a directory")
+                except PermissionError:
+                    print(f"cd: {path}: Permission denied")
+                continue
+
+            if cmd == "type":
+                if not args:
+                    continue
+
+                target = args[0]
+                if target in BUILTINS:
+                    print(f"{target} is a shell builtin")
+                    continue
+
+                exe_path = find_executable(target)
+                if exe_path:
+                    print(f"{target} is {exe_path}")
+                else:
+                    print(f"{target}: not found")
+                continue
+
+            # ----------------------------
+            # External commands
+            # ----------------------------
+            exe_path = find_executable(cmd)
+            if not exe_path:
+                print(f"{cmd}: command not found")
+                continue
+
+            subprocess.run([cmd] + args, executable=exe_path)
+
+        finally:
+            if saved_stdout is not None:
                 os.dup2(saved_stdout, 1)
                 os.close(saved_stdout)
-        else:
-            subprocess.run([cmd] + args, executable=exe_path)
 
 
 if __name__ == "__main__":
