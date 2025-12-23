@@ -82,42 +82,43 @@ def main():
         if not parts:
             continue
 
-        # ----------------------------
-        # Detect stdout redirection
-        # ----------------------------
-        redirect_file = None
-        redirect_idx = None
+        stdout_file = None
+        stderr_file = None
+        cut_idx = None
 
         for i, token in enumerate(parts):
             if token in (">", "1>"):
-                redirect_idx = i
-                redirect_file = parts[i + 1]
+                stdout_file = parts[i + 1]
+                cut_idx = i
+                break
+            if token == "2>":
+                stderr_file = parts[i + 1]
+                cut_idx = i
                 break
 
-        if redirect_idx is not None:
-            parts = parts[:redirect_idx]
+        if cut_idx is not None:
+            parts = parts[:cut_idx]
 
         cmd = parts[0]
         args = parts[1:]
 
-        # ----------------------------
-        # Setup stdout redirection (BEFORE execution)
-        # ----------------------------
         saved_stdout = None
-        if redirect_file:
-            saved_stdout = os.dup(1)
-            fd = os.open(
-                redirect_file,
-                os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
-                0o644
-            )
-            os.dup2(fd, 1)
-            os.close(fd)
+        saved_stderr = None
 
         try:
-            # ----------------------------
-            # Builtins
-            # ----------------------------
+            if stdout_file:
+                saved_stdout = os.dup(1)
+                fd = os.open(stdout_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+                os.dup2(fd, 1)
+                os.close(fd)
+
+            if stderr_file:
+                saved_stderr = os.dup(2)
+                fd = os.open(stderr_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+                os.dup2(fd, 2)
+                os.close(fd)
+
+            # -------- Builtins --------
             if cmd == "exit":
                 return
 
@@ -132,11 +133,9 @@ def main():
             if cmd == "cd":
                 if not args:
                     continue
-
                 path = args[0]
                 if path == "~":
                     path = os.getenv("HOME")
-
                 try:
                     os.chdir(path)
                 except FileNotFoundError:
@@ -150,12 +149,10 @@ def main():
             if cmd == "type":
                 if not args:
                     continue
-
                 target = args[0]
                 if target in BUILTINS:
                     print(f"{target} is a shell builtin")
                     continue
-
                 exe_path = find_executable(target)
                 if exe_path:
                     print(f"{target} is {exe_path}")
@@ -163,9 +160,7 @@ def main():
                     print(f"{target}: not found")
                 continue
 
-            # ----------------------------
-            # External commands
-            # ----------------------------
+            # -------- External --------
             exe_path = find_executable(cmd)
             if not exe_path:
                 print(f"{cmd}: command not found")
@@ -177,6 +172,10 @@ def main():
             if saved_stdout is not None:
                 os.dup2(saved_stdout, 1)
                 os.close(saved_stdout)
+
+            if saved_stderr is not None:
+                os.dup2(saved_stderr, 2)
+                os.close(saved_stderr)
 
 
 if __name__ == "__main__":
