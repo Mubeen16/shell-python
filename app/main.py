@@ -84,11 +84,18 @@ def main():
 
         stdout_file = None
         stderr_file = None
+        stdout_append = False
         cut_idx = None
 
         for i, token in enumerate(parts):
             if token in (">", "1>"):
                 stdout_file = parts[i + 1]
+                stdout_append = False
+                cut_idx = i
+                break
+            if token in (">>", "1>>"):
+                stdout_file = parts[i + 1]
+                stdout_append = True
                 cut_idx = i
                 break
             if token == "2>":
@@ -108,7 +115,9 @@ def main():
         try:
             if stdout_file:
                 saved_stdout = os.dup(1)
-                fd = os.open(stdout_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+                flags = os.O_WRONLY | os.O_CREAT
+                flags |= os.O_APPEND if stdout_append else os.O_TRUNC
+                fd = os.open(stdout_file, flags, 0o644)
                 os.dup2(fd, 1)
                 os.close(fd)
 
