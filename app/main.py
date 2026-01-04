@@ -1,8 +1,25 @@
 import sys
 import os
 import subprocess
+import readline
 
+AUTOCOMPLETE_BUILTINS = ["echo", "exit"]
 BUILTINS = {"exit", "echo", "type", "pwd", "cd"}
+
+
+def completer(text, state):
+    matches = [
+        cmd + " "
+        for cmd in AUTOCOMPLETE_BUILTINS
+        if cmd.startswith(text)
+    ]
+    try:
+        return matches[state]
+    except IndexError:
+        return None
+
+readline.set_completer(completer)
+readline.parse_and_bind("tab: complete")
 
 def find_executable(cmd):
     for directory in os.environ.get("PATH", "").split(os.pathsep):
