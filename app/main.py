@@ -3,23 +3,27 @@ import os
 import subprocess
 import readline
 
-AUTOCOMPLETE_BUILTINS = ["echo", "exit"]
 BUILTINS = {"exit", "echo", "type", "pwd", "cd"}
+AUTOCOMPLETE_BUILTINS = ["echo", "exit"]
 
 
 def completer(text, state):
+    buffer = readline.get_line_buffer()
+
     matches = [
         cmd + " "
         for cmd in AUTOCOMPLETE_BUILTINS
-        if cmd.startswith(text)
+        if cmd.startswith(buffer)
     ]
-    try:
+
+    if state < len(matches):
         return matches[state]
-    except IndexError:
-        return None
+    return None
+
 
 readline.set_completer(completer)
 readline.parse_and_bind("tab: complete")
+
 
 def find_executable(cmd):
     for directory in os.environ.get("PATH", "").split(os.pathsep):
@@ -88,129 +92,65 @@ def parse_command(line):
 
 def main():
     while True:
-        sys.stdout.write("$ ")
-        sys.stdout.flush()
-
-        line = sys.stdin.readline()
-        if not line:
+        try:
+            line = input("$ ")
+        except EOFError:
             continue
 
-        parts = parse_command(line.rstrip("\n"))
+        parts = parse_command(line)
         if not parts:
             continue
-
-        stdout_file = None
-        stderr_file = None
-        stdout_append = False
-        stderr_append = False
-        cut_idx = None
-
-        for i, token in enumerate(parts):
-            if token in (">", "1>"):
-                stdout_file = parts[i + 1]
-                stdout_append = False
-                cut_idx = i
-                break
-            if token in (">>", "1>>"):
-                stdout_file = parts[i + 1]
-                stdout_append = True
-                cut_idx = i
-                break
-            if token == "2>":
-                stderr_file = parts[i + 1]
-                stderr_append = False
-                cut_idx = i
-                break
-            if token == "2>>":
-                stderr_file = parts[i + 1]
-                stderr_append = True
-                cut_idx = i
-                break
-
-        if cut_idx is not None:
-            parts = parts[:cut_idx]
 
         cmd = parts[0]
         args = parts[1:]
 
-        saved_stdout = None
-        saved_stderr = None
+        if cmd == "exit":
+            return
 
-        try:
-            if stdout_file:
-                saved_stdout = os.dup(1)
-                flags = os.O_WRONLY | os.O_CREAT
-                flags |= os.O_APPEND if stdout_append else os.O_TRUNC
-                fd = os.open(stdout_file, flags, 0o644)
-                os.dup2(fd, 1)
-                os.close(fd)
+        if cmd == "echo":
+            print(" ".join(args))
+            continue
 
-            if stderr_file:
-                saved_stderr = os.dup(2)
-                flags = os.O_WRONLY | os.O_CREAT
-                flags |= os.O_APPEND if stderr_append else os.O_TRUNC
-                fd = os.open(stderr_file, flags, 0o644)
-                os.dup2(fd, 2)
-                os.close(fd)
+        if cmd == "pwd":
+            print(os.getcwd())
+            continue
 
-            # -------- Builtins --------
-            if cmd == "exit":
-                return
-
-            if cmd == "echo":
-                print(" ".join(args))
+        if cmd == "cd":
+            if not args:
                 continue
+            path = args[0]
+            if path == "~":
+                path = os.getenv("HOME")
+            try:
+                os.chdir(path)
+            except FileNotFoundError:
+                print(f"cd: {path}: No such file or directory")
+            except NotADirectoryError:
+                print(f"cd: {path}: Not a directory")
+            except PermissionError:
+                print(f"cd: {path}: Permission denied")
+            continue
 
-            if cmd == "pwd":
-                print(os.getcwd())
+        if cmd == "type":
+            if not args:
                 continue
-
-            if cmd == "cd":
-                if not args:
-                    continue
-                path = args[0]
-                if path == "~":
-                    path = os.getenv("HOME")
-                try:
-                    os.chdir(path)
-                except FileNotFoundError:
-                    print(f"cd: {path}: No such file or directory")
-                except NotADirectoryError:
-                    print(f"cd: {path}: Not a directory")
-                except PermissionError:
-                    print(f"cd: {path}: Permission denied")
+            target = args[0]
+            if target in BUILTINS:
+                print(f"{target} is a shell builtin")
                 continue
+            exe_path = find_executable(target)
+            if exe_path:
+                print(f"{target} is {exe_path}")
+            else:
+                print(f"{target}: not found")
+            continue
 
-            if cmd == "type":
-                if not args:
-                    continue
-                target = args[0]
-                if target in BUILTINS:
-                    print(f"{target} is a shell builtin")
-                    continue
-                exe_path = find_executable(target)
-                if exe_path:
-                    print(f"{target} is {exe_path}")
-                else:
-                    print(f"{target}: not found")
-                continue
+        exe_path = find_executable(cmd)
+        if not exe_path:
+            print(f"{cmd}: command not found")
+            continue
 
-            # -------- External --------
-            exe_path = find_executable(cmd)
-            if not exe_path:
-                print(f"{cmd}: command not found")
-                continue
-
-            subprocess.run([cmd] + args, executable=exe_path)
-
-        finally:
-            if saved_stdout is not None:
-                os.dup2(saved_stdout, 1)
-                os.close(saved_stdout)
-
-            if saved_stderr is not None:
-                os.dup2(saved_stderr, 2)
-                os.close(saved_stderr)
+        subprocess.run([cmd] + args, executable=exe_path)
 
 
 if __name__ == "__main__":
